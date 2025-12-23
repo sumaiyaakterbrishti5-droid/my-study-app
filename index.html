@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dhakil System V6: Reality Check</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Noto+Sans+Bengali:wght@400;600&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root {
+            --neon-blue: #00e5ff;
+            --neon-red: #ff003c;
+            --neon-yellow: #ffd700;
+            --bg-dark: #050508;
+            --panel-bg: rgba(10, 15, 25, 0.95);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Roboto Mono', 'Noto Sans Bengali', monospace;
+            overflow-x: hidden;
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0, 229, 255, 0.03) 2px, rgba(0, 229, 255, 0.03) 4px);
+        }
+
+        .system-font { font-family: 'Orbitron', sans-serif; }
+        .bangla-font { font-family: 'Noto Sans Bengali', sans-serif; }
+        
+        .system-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .system-panel:hover {
+            border-color: rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
+        }
+
+        .danger-panel {
+            border: 1px solid rgba(255, 0, 60, 0.3);
+            box-shadow: inset 0 0 20px rgba(255, 0, 60, 0.1);
+        }
+
+        .system-input, .system-select {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #374151;
+            color: white;
+            transition: all 0.3s;
+        }
+        .system-input:focus, .system-select:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 229, 255, 0.1);
+            border-bottom: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        /* Glitch text effect for danger */
+        .glitch-text {
+            animation: glitch 1s linear infinite;
+        }
+        @keyframes glitch {
+            2%, 64% { transform: translate(2px,0) skew(0deg); }
+            4%, 60% { transform: translate(-2px,0) skew(0deg); }
+            62% { transform: translate(0,0) skew(5deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-blue); }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <!-- NAV BAR -->
+    <nav class="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="skull" class="text-red-500 w-6 h-6"></i>
+                    <span class="system-font font-bold text-xl text-white tracking-widest">REALITY<span class="text-red-500">CHECK</span></span>
+                </div>
+                <div class="flex space-x-2 md:space-x-4">
+                    <button onclick="switchTab('daily')" id="tab-daily" class="tab-btn active px-3 py-2 text-xs md:text-sm font-bold system-font tracking-wide transition-all rounded-t">DAILY</button>
+                    <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-3 py-2 text-xs md:text-sm font-bold system-font tracking-wide transition-all rounded-t text-red-400 hover:text-red-300">ANALYTICS ⚠️</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+        
+        <!-- GLOBAL STATS BAR -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="system-panel p-3 rounded border-l-2 border-blue-500">
+                <div class="text-[10px] text-gray-500">LEVEL</div>
+                <div class="text-2xl font-bold system-font text-white" id="level-display">1</div>
+            </div>
+            <div class="system-panel p-3 rounded border-l-2 border-red-500">
+                <div class="text-[10px] text-gray-500">HP (HEALTH)</div>
+                <div class="text-xl font-bold system-font text-red-500" id="hp-display">100</div>
+            </div>
+             <div class="system-panel p-3 rounded border-l-2 border-yellow-500">
+                <div class="text-[10px] text-gray-500">XP</div>
+                <div class="text-xl font-bold system-font text-yellow-500" id="xp-display">0</div>
+            </div>
+            <div class="system-panel p-3 rounded border-l-2 border-purple-500">
+                <div class="text-[10px] text-gray-500">AVAILABLE PTS</div>
+                <div class="text-2xl font-bold system-font text-white" id="points-display">0</div>
+            </div>
+        </div>
+
+        <!-- VIEW: DAILY OPS -->
+        <div id="view-daily" class="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+            
+            <!-- Center: Mandate (5 Cols) -->
+            <div class="lg:col-span-5 space-y-6 order-2 lg:order-1">
+                <div class="system-panel p-6 rounded-lg border-t-2 border-red-600 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <i data-lucide="clock" class="w-32 h-32 text-red-500"></i>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6">
+                         <h3 class="system-font text-red-500 text-lg flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> DAILY LOG</h3>
+                         <input type="date" id="current-date" class="bg-transparent text-gray-400 text-xs border border-gray-700 rounded p-1" onchange="loadDateData()">
+                    </div>
+                    
+                    <div class="space-y-5" id="mandate-container">
+                         <!-- Screen Time First (Priority Warning) -->
+                         <div class="bg-red-900/10 p-4 rounded border border-red-900/50">
+                            <label class="text-xs text-red-400 block mb-2 font-bold flex items-center gap-2">
+                                <i data-lucide="smartphone-off" class="w-4 h-4"></i> SCREEN TIME (Limit: 3h)
+                            </label>
+                            <div class="flex gap-4 items-center">
+                                <input id="in-screen" type="number" class="system-input flex-1 p-3 rounded text-lg font-bold text-center text-red-400 placeholder-red-900" placeholder="0.0">
+                                <span class="text-sm text-gray-500 font-bold">HOURS</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-black/30 p-3 rounded border border-gray-800">
+                                <label class="text-[10px] text-blue-300 block mb-1">STUDY (HRS)</label>
+                                <input id="in-study" type="number" class="system-input w-full p-2 text-center font-bold" placeholder="0">
+                            </div>
+                            <div class="bg-black/30 p-3 rounded border border-gray-800">
+                                <label class="text-[10px] text-purple-300 block mb-1">SLEEP (HRS)</label>
+                                <input id="in-sleep" type="number" class="system-input w-full p-2 text-center font-bold" placeholder="0">
+                            </div>
+                         </div>
+                        
+                        <button onclick="submitMandate()" id="btn-mandate" class="w-full py-4 bg-gradient-to-r from-red-900 to-red-800 hover:from-red-700 hover:to-red-600 text-white font-black tracking-widest system-font rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center justify-center gap-2">
+                            SUBMIT TRUTH <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Section Small -->
+                 <div class="system-panel p-4 rounded-lg">
+                    <h3 class="system-font text-xs text-gray-500 mb-3 border-b border-gray-800 pb-1">STATS OVERVIEW</h3>
+                    <div id="stats-list" class="grid grid-cols-2 gap-2 text-xs">
+                        <!-- Stats injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Missions (7 Cols) -->
+            <div class="lg:col-span-7 space-y-6 order-1 lg:order-2">
+                <div class="system-panel p-6 rounded-lg h-full border-t-2 border-green-500 flex flex-col">
+                    <h3 class="system-font text-green-400 mb-2 flex items-center gap-2"><i data-lucide="sword" class="w-5 h-5"></i> STUDY MISSIONS</h3>
+                    <p class="text-[10px] text-gray-500 mb-6">Log your battle hours against ignorance.</p>
+
+                    <!-- Add Mission Form -->
+                    <div class="bg-gray-900/50 p-4 rounded mb-4 grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                        <div class="md:col-span-3">
+                            <label class="text-[10px] text-gray-500 mb-1 block">SUBJECT</label>
+                            <select id="m-subject" class="system-select w-full p-2 text-xs bangla-font h-10 font-bold">
+                                <!-- JS Populated -->
+                            </select>
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="text-[10px] text-gray-500 mb-1 block">TOPIC / CHAPTER</label>
+                            <input id="m-title" type="text" placeholder="e.g. Math Ex 9.1" class="system-input w-full p-2 text-xs h-10">
+                        </div>
+                        <div class="md:col-span-2">
+                             <label class="text-[10px] text-gray-500 mb-1 block">DURATION</label>
+                            <input id="m-hours" type="number" placeholder="Hr" class="system-input w-full p-2 text-xs h-10 text-center font-bold">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button onclick="addMission()" class="w-full h-10 bg-green-900/50 hover:bg-green-600 text-green-300 border border-green-800 rounded text-xs font-bold transition-all flex items-center justify-center">ADD</button>
+                        </div>
+                    </div>
+
+                    <!-- Mission List -->
+                    <div id="mission-list" class="flex-grow overflow-y-auto space-y-2 custom-scrollbar max-h-[500px] pr-2">
+                        <!-- Injected -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: ANALYTICS (REALITY CHECK) -->
+        <div id="view-analytics" class="hidden animate-fade-in space-y-8">
+            
+            <div class="text-center mb-4">
+                <h2 class="text-3xl system-font font-black text-red-600 glitch-text tracking-widest">REALITY REPORT</h2>
+                <p class="text-gray-500 text-xs mt-2 uppercase tracking-widest">The numbers do not lie, Hunter.</p>
+            </div>
+
+            <!-- The Big Comparison Chart -->
+            <div class="danger-panel p-6 rounded-lg bg-black/40">
+                <h3 class="system-font text-white text-sm mb-4 flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="text-red-500"></i> STUDY VS SCREEN (LAST 7 DAYS)
+                </h3>
+                <div class="h-64 relative w-full">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- The 3 Cards of Truth -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Weekly Screen Time -->
+                <div class="system-panel p-6 rounded border-t-4 border-red-600 text-center">
+                    <div class="text-xs text-red-400 font-bold uppercase mb-2">Weekly Screen Time</div>
+                    <div class="text-4xl font-black system-font text-white mb-2"><span id="week-screen">0</span>h</div>
+                    <div id="week-screen-verdict" class="text-[10px] tracking-widest font-bold">CALCULATING...</div>
+                </div>
+
+                <!-- Monthly Screen Time -->
+                <div class="system-panel p-6 rounded border-t-4 border-purple-600 text-center">
+                    <div class="text-xs text-purple-400 font-bold uppercase mb-2">Monthly Screen Time</div>
+                    <div class="text-4xl font-black system-font text-white mb-2"><span id="month-screen">0</span>h</div>
+                    <div class="text-[10px] text-gray-500 mt-2">Days of life lost: <span id="days-lost" class="text-white font-bold">0</span></div>
+                </div>
+
+                <!-- Prediction -->
+                <div class="system-panel p-6 rounded border-t-4 border-yellow-600 text-center">
+                    <div class="text-xs text-yellow-500 font-bold uppercase mb-2">Yearly Projection</div>
+                    <div class="text-xl text-gray-300 font-mono mb-2">At this rate, you waste</div>
+                    <div class="text-3xl font-black system-font text-red-500 mb-1"><span id="year-screen">0</span> HRS</div>
+                    <div class="text-[10px] text-gray-500 uppercase">Per Year</div>
+                </div>
+            </div>
+
+            <!-- Subject Distribution (Small) -->
+            <div class="system-panel p-6 rounded-lg">
+                <h3 class="system-font text-xs text-gray-500 mb-4">STUDY DISTRIBUTION</h3>
+                <div class="h-48 relative w-full flex justify-center">
+                    <canvas id="subjectChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // --- CONSTANTS ---
+        const SUBJECTS = ["Math", "English", "Bangla", "Quran", "Hadith", "History", "Mantiq", "Aqaid", "Arabic", "Science"];
+        const KEY = 'dhakil_system_v6';
+        
+        // --- STATE ---
+        let state = {
+            global: {
+                level: 1, xp: 0, xpToNext: 100, hp: 100, maxHp: 100,
+                stats: { STR: 10, INT: 10, VIT: 10, AGI: 10, SEN: 10 },
+                points: 0
+            },
+            history: {} 
+        };
+        let currentDate = new Date().toISOString().split('T')[0];
+        let comparisonChartInst = null;
+        let subjectChartInst = null;
+
+        // --- INIT ---
+        function init() {
+            const saved = localStorage.getItem(KEY);
+            if(saved) state = JSON.parse(saved);
+            
+            document.getElementById('current-date').value = currentDate;
+            populateSubjects();
+            loadDateData();
+        }
+
+        function populateSubjects() {
+            const sel = document.getElementById('m-subject');
+            SUBJECTS.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s; opt.innerText = s; opt.className="bg-black";
+                sel.appendChild(opt);
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+
+            if(tab === 'daily') {
+                document.getElementById('view-daily').classList.remove('hidden');
+                document.getElementById('view-analytics').classList.add('hidden');
+            } else {
+                document.getElementById('view-daily').classList.add('hidden');
+                document.getElementById('view-analytics').classList.remove('hidden');
+                renderAnalytics(); 
+            }
+        }
+
+        // --- DATA LOGIC ---
+        function loadDateData() {
+            currentDate = document.getElementById('current-date').value;
+            
+            // Init day with Default 3HR Screen Limit
+            if(!state.history[currentDate]) {
+                state.history[currentDate] = {
+                    mandate: {
+                        tScreen: 3, // HARD LIMIT 3 HOURS
+                        actuals: { study:0, sleep:0, screen:0 },
+                        done: false
+                    },
+                    missions: []
+                };
+            }
+            save(); renderUI();
+        }
+
+        function renderUI() {
+            const g = state.global;
+            const h = state.history[currentDate];
+            const isToday = (currentDate === new Date().toISOString().split('T')[0]);
+
+            // Global
+            document.getElementById('level-display').innerText = g.level;
+            document.getElementById('hp-display').innerText = g.hp;
+            document.getElementById('xp-display').innerText = g.xp;
+            document.getElementById('points-display').innerText = g.points;
+
+            // Stats List
+            const sList = document.getElementById('stats-list');
+            sList.innerHTML = '';
+            for(let k in g.stats) {
+                sList.innerHTML += `
+                    <div class="flex justify-between border-b border-gray-800 py-1">
+                        <span class="text-gray-500 font-bold">${k}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-white font-mono">${g.stats[k]}</span>
+                            <button onclick="addStat('${k}')" class="${g.points>0?'':'hidden'} text-[10px] bg-blue-900 px-1 rounded hover:bg-blue-600">+</button>
+                        </div>
+                    </div>`;
+            }
+
+            // Mandate
+            const btnM = document.getElementById('btn-mandate');
+            if(h.mandate.done) {
+                btnM.disabled = true;
+                btnM.innerHTML = "LOG LOCKED <i data-lucide='lock' class='w-4 h-4'></i>";
+                btnM.classList.add('opacity-50', 'grayscale');
+                // Fill inputs from saved data
+                document.getElementById('in-screen').value = h.mandate.actuals.screen;
+                document.getElementById('in-study').value = h.mandate.actuals.study;
+                document.getElementById('in-sleep').value = h.mandate.actuals.sleep;
+            } else {
+                btnM.disabled = !isToday;
+                btnM.innerHTML = "SUBMIT TRUTH <i data-lucide='fingerprint' class='w-4 h-4'></i>";
+                btnM.classList.remove('opacity-50', 'grayscale');
+                // Clear
+                document.getElementById('in-screen').value = '';
+                document.getElementById('in-study').value = '';
+                document.getElementById('in-sleep').value = '';
+            }
+
+            // Missions
+            const mList = document.getElementById('mission-list');
+            mList.innerHTML = '';
+            h.missions.forEach((m, i) => {
+                mList.innerHTML += `
+                    <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] text-green-400 font-bold uppercase">${m.subject}</div>
+                            <div class="text-xs text-white font-bold">${m.title}</div>
+                            <div class="text-[10px] text-gray-500">${m.hours} Hours</div>
+                        </div>
+                        ${!m.done && isToday ? 
+                            `<button onclick="finishMission(${i})" class="px-3 py-1 bg-green-900/40 border border-green-600 text-green-400 text-xs rounded hover:bg-green-700">COMPLETE</button>` 
+                            : ''}
+                         ${m.done ? `<span class="text-green-600 text-xs font-bold">DONE</span>` : ''}
+                    </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        // --- ACTIONS ---
+        function submitMandate() {
+            const h = state.history[currentDate];
+            const scr = parseFloat(document.getElementById('in-screen').value) || 0;
+            const stu = parseFloat(document.getElementById('in-study').value) || 0;
+            const sle = parseFloat(document.getElementById('in-sleep').value) || 0;
+
+            let dmg = 0; let xp = 0;
+            
+            // SCREEN TIME PUNISHMENT (The Scary Part)
+            const limit = 3;
+            if(scr > limit) {
+                const over = scr - limit;
+                const pen = Math.ceil(over * 10); // 10 HP damage per extra hour
+                dmg += pen;
+                alert(`WARNING: Screen limit exceeded by ${over.toFixed(1)}h.\nPenalty: -${pen} HP`);
+            } else {
+                xp += 20; // Self control bonus
+            }
+
+            // Study/Sleep basics
+            if(stu < 2) dmg += 5; else xp += 20;
+            if(sle < 6) dmg += 5; else xp += 10;
+
+            h.mandate.actuals = { screen: scr, study: stu, sleep: sle };
+            h.mandate.done = true;
+
+            if(dmg > 0) takeDamage(dmg);
+            else gainXp(xp);
+
+            save(); renderUI();
+        }
+
+        function addMission() {
+            const s = document.getElementById('m-subject').value;
+            const t = document.getElementById('m-title').value;
+            const h = parseFloat(document.getElementById('m-hours').value);
+            if(!t || !h) return;
+            state.history[currentDate].missions.push({subject:s, title:t, hours:h, done:false});
+            document.getElementById('m-title').value = '';
+            document.getElementById('m-hours').value = '';
+            save(); renderUI();
+        }
+
+        function finishMission(i) {
+            const m = state.history[currentDate].missions[i];
+            if(!m.done) {
+                m.done = true;
+                gainXp(m.hours * 20);
+                // Chance for stat
+                if(Math.random() < 0.3) {
+                    state.global.stats.INT++;
+                    alert("INT Increased!");
+                }
+                save(); renderUI();
+            }
+        }
+
+        // --- ANALYTICS ENGINE (THE REALITY CHECK) ---
+        function renderAnalytics() {
+            const dates = [];
+            const screenData = [];
+            const studyData = [];
+            let wScreen = 0;
+            let mScreen = 0; // Approx monthly sum
+            const subDist = {};
+
+            // Calculate last 7 days for Chart
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate()-i);
+                const ds = d.toISOString().split('T')[0];
+                dates.push(ds.slice(5)); // MM-DD
+                
+                let sDay = 0; 
+                let stuDay = 0;
+
+                if(state.history[ds]) {
+                    const h = state.history[ds];
+                    // Screen
+                    if(h.mandate.done) sDay = h.mandate.actuals.screen;
+                    // Study (From missions)
+                    h.missions.forEach(m => { if(m.done) { stuDay += m.hours; subDist[m.subject] = (subDist[m.subject]||0)+m.hours; } });
+                    // Also check mandate reported study if missions empty
+                    if(stuDay === 0 && h.mandate.done) stuDay = h.mandate.actuals.study;
+                }
+                screenData.push(sDay);
+                studyData.push(stuDay);
+                wScreen += sDay;
+            }
+
+            // Calculate Monthly Screen (Loop all history roughly)
+            // Ideally we'd filter by date, but simple sum is okay for now if DB is small
+            Object.values(state.history).forEach(day => {
+                if(day.mandate && day.mandate.done) mScreen += day.mandate.actuals.screen;
+            });
+
+            // Update DOM Cards
+            document.getElementById('week-screen').innerText = wScreen.toFixed(1);
+            
+            const verdictEl = document.getElementById('week-screen-verdict');
+            if(wScreen > 21) {
+                verdictEl.innerText = "STATUS: ADDICTED (CRITICAL)";
+                verdictEl.className = "text-[10px] tracking-widest font-bold text-red-500 animate-pulse";
+            } else {
+                verdictEl.innerText = "STATUS: SAFE (CONTROLLED)";
+                verdictEl.className = "text-[10px] tracking-widest font-bold text-green-500";
+            }
+
+            document.getElementById('month-screen').innerText = mScreen.toFixed(1);
+            const daysLost = (mScreen / 24).toFixed(1);
+            document.getElementById('days-lost').innerText = daysLost + " DAYS";
+            
+            // Yearly Projection
+            // Based on average of recorded history, or just project current week? Let's project week.
+            const avgDaily = wScreen > 0 ? (wScreen / 7) : 0;
+            const yearly = Math.floor(avgDaily * 365);
+            document.getElementById('year-screen').innerText = yearly;
+
+            // DRAW COMPARISON CHART
+            drawComparisonChart(dates, studyData, screenData);
+            drawSubjectChart(subDist);
+        }
+
+        function drawComparisonChart(labels, study, screen) {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            if(comparisonChartInst) comparisonChartInst.destroy();
+
+            comparisonChartInst = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Study (The Goal)',
+                            data: study,
+                            backgroundColor: '#00e5ff',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Mobile (The Waste)',
+                            data: screen,
+                            backgroundColor: '#ff003c',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: {color: '#333'} },
+                        x: { grid: {display: false} }
+                    },
+                    plugins: {
+                        legend: { labels: {color:'white'} }
+                    }
+                }
+            });
+        }
+
+        function drawSubjectChart(dataObj) {
+            const ctx = document.getElementById('subjectChart').getContext('2d');
+            if(subjectChartInst) subjectChartInst.destroy();
+            
+            subjectChartInst = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(dataObj),
+                    datasets: [{
+                        data: Object.values(dataObj),
+                        backgroundColor: ['#00e5ff', '#ff003c', '#00ff9d', '#ffd700', '#bc13fe'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: {position: 'right', labels: {color:'#fff', font:{size:10}}} }
+                }
+            });
+        }
+
+        // --- UTILS ---
+        function gainXp(n) {
+            state.global.xp += n;
+            if(state.global.xp >= state.global.xpToNext) {
+                state.global.level++;
+                state.global.xp -= state.global.xpToNext;
+                state.global.hp = state.global.maxHp;
+                state.global.points += 3;
+                alert("LEVEL UP!");
+            }
+        }
+        function takeDamage(n) {
+            state.global.hp -= n;
+            if(state.global.hp <= 0) { state.global.hp = 0; alert("CRITICAL: HEALTH DEPLETED!"); }
+        }
+        function addStat(k) { if(state.global.points>0){ state.global.stats[k]++; state.global.points--; save(); renderUI(); } }
+        function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+        init();
+    </script>
+</body>
+</html>
